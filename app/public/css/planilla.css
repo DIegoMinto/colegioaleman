@@ -1,0 +1,179 @@
+
+        .planilla-wrapper {
+            font-family: 'Poppins', sans-serif;
+            overflow-x: auto;
+        }
+
+        .info-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 0;
+        }
+
+        .info-table td {
+            border: 1px solid #000;
+            padding: 6px 10px;
+            font-size: 0.8em;
+            vertical-align: middle;
+        }
+
+        .info-logo {
+            width: 160px;
+            text-align: center;
+            padding: 4px;
+        }
+
+        .info-logo img {
+            max-height: 70px;
+            max-width: 150px;
+            object-fit: contain;
+        }
+
+        .info-label {
+            background-color: #f4c7c3;
+            color: #7A1C1C;
+            font-weight: 700;
+            text-align: center;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .info-value {
+            background-color: #fff;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .prof-value {
+            text-align: left;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .planilla-table {
+            border-collapse: collapse;
+            font-size: 0.8em;
+            width: 100%;
+        }
+
+        .planilla-table th,
+        .planilla-table td {
+            box-sizing: border-box;
+            border: 1px solid #000;
+            padding: 3px 5px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+
+        .th-vertical {
+            height: 120px;
+            vertical-align: bottom;
+            padding: 6px 4px;
+        }
+
+        /* Grupo SER */
+        .th-dimension-ser {
+            background-color: #c6efce;
+            font-weight: bold;
+        }
+
+        .td-dimension-ser {
+            background-color: #eaf7ec;
+        }
+
+        /* Grupo SABER */
+        .th-dimension-saber {
+            background-color: #bdd7ee;
+            font-weight: bold;
+        }
+
+        .td-dimension-saber {
+            background-color: #eaf1fa;
+        }
+
+        /* Grupo HACER */
+        .th-dimension-hacer {
+            background-color: #fce4d6;
+            font-weight: bold;
+        }
+
+        .td-dimension-hacer {
+            background-color: #fdf1eb;
+        }
+
+        /* Grupo DECIDIR / Autoevaluación */
+        .th-dimension-decidir {
+            background-color: #ffe699;
+            font-weight: bold;
+        }
+
+        .input-nota {
+            width: 40px;
+            text-align: center;
+            border: none;
+            background: transparent;
+            font-size: 0.95em;
+        }
+
+        .input-nota:focus {
+            background: #fffbe6;
+            outline: 1px solid #999;
+        }
+
+        .input-nombre-criterio {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            border: none;
+            background: transparent;
+            width: 20px;
+            height: 115px;
+            font-size: 0.75em;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .input-nombre-criterio:focus {
+            background: #fffbe6;
+            outline: 1px solid #aaa;
+        }
+
+        /* Promedio por dimensión (celeste pastel, según lo indicado) */
+        .th-promedio-dim {
+            background-color: #d9edf7;
+            font-weight: bold;
+        }
+
+        .td-promedio-dim {
+            background-color: #d9edf7;
+            font-weight: bold;
+        }
+
+        /* Promedio final (columna destacada) */
+        .th-promedio-final {
+            background-color: #fff2cc;
+            font-weight: bold;
+        }
+
+        .td-promedio-final {
+            background-color: #fff2cc;
+            font-weight: bold;
+            font-size: 1.05em;
+        }
+
+        .th-entrevista,
+        .td-entrevista {
+            background-color: #f2f2f2;
+        }
+
+        .input-entrevista {
+            width: 40px;
+            text-align: center;
+            border: none;
+            background: transparent;
+        }
+
+        .td-pendiente {
+            color: #aaa;
+            font-style: italic;
+        }

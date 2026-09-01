@@ -1,0 +1,27 @@
+# Archivos de entorno y credenciales (¡NUNCA SUBIR!)
+/.env
+/.env.backup
+/.env.production
+/*.pem
+
+# Librerías y dependencias pesadas
+/vendor/
+/node_modules/
+
+# Archivos compilados y logs
+/public/build/
+/public/storage
+/storage/*.key
+/storage/logs/*.log
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+
+# IDEs y SO
+/.idea
+/.vscode
+.DS_Store
+Thumbs.db
+
+# Datos locales de Postgres o Docker (si generaste volúmenes locales)
+/docker/data
