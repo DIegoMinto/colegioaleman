@@ -10,27 +10,38 @@ use Illuminate\Support\Facades\DB;
 
 class InscripcionController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $cursos = Curso::withCount('inscripciones')->orderBy('nivel')->orderBy('paralelo')->get();
-        return view('inscripciones.index', compact('cursos'));
+        $gestionSeleccionada = $request->get('gestion', date('Y'));
+
+        $gestiones = range(date('Y'), 2024);
+
+        $cursos = Curso::withCount([
+            'inscripciones' => function ($query) use ($gestionSeleccionada) {
+                $query->where('gestion', $gestionSeleccionada);
+            }
+        ])->orderBy('nivel')->orderBy('paralelo')->get();
+
+        return view('inscripciones.index', compact('cursos', 'gestionSeleccionada', 'gestiones'));
     }
 
-    public function show(Curso $curso)
+    public function show(Request $request, Curso $curso)
     {
+        $gestionSeleccionada = $request->get('gestion', date('Y'));
+
         $inscripciones = Inscripcion::with('estudiante.persona')
             ->where('id_cursos', $curso->id_cursos)
+            ->where('gestion', $gestionSeleccionada)
             ->get();
 
-        return view('inscripciones.show', compact('curso', 'inscripciones'));
+        return view('inscripciones.show', compact('curso', 'inscripciones', 'gestionSeleccionada'));
     }
 
     public function create(Curso $curso)
     {
         $gestion = date('Y');
 
-        $idsYaInscritos = Inscripcion::where('id_cursos', $curso->id_cursos)
-            ->where('gestion', $gestion)
+        $idsYaInscritos = Inscripcion::where('gestion', $gestion)
             ->pluck('id_estudiantes');
 
         $estudiantesDisponibles = Estudiante::with('persona')
@@ -60,15 +71,17 @@ class InscripcionController extends Controller
             }
         });
 
-        return redirect()->route('inscripciones.show', $curso)
+        return redirect()->route('inscripciones.show', ['curso' => $curso, 'gestion' => $datos['gestion']])
             ->with('exito', count($datos['estudiantes']) . ' estudiante(s) inscrito(s) correctamente.');
     }
 
     public function destroy(Inscripcion $inscripcion)
     {
         $curso = $inscripcion->curso;
+        $gestion = $inscripcion->gestion;
         $inscripcion->delete();
 
-        return redirect()->route('inscripciones.show', $curso)->with('exito', 'Inscripción eliminada.');
+        return redirect()->route('inscripciones.show', ['curso' => $curso, 'gestion' => $gestion])
+            ->with('exito', 'Inscripción eliminada.');
     }
 }

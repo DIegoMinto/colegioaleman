@@ -18,6 +18,7 @@ class PlanillaController extends Controller
     private const NOTA_APROBACION = 51;
     public function show(Asignacion $asignacion, Trimestre $trimestre)
     {
+        $esEdicionPermitida = $trimestre->estaActivo();
         $dimensiones = [
             'Ser' => ['peso' => 10, 'columnas' => 5],
             'Saber' => ['peso' => 45, 'columnas' => 11],
@@ -48,6 +49,26 @@ class PlanillaController extends Controller
             }
         }
 
+        $diasAsistencia = \App\Models\DiaAsistencia::where('id_asignaciones', $asignacion->id_asignaciones)
+            ->where('id_trimestres', $trimestre->id_trimestres)
+            ->orderBy('orden')
+            ->get();
+
+        if ($diasAsistencia->isEmpty()) {
+            for ($i = 1; $i <= 19; $i++) {
+                \App\Models\DiaAsistencia::create([
+                    'id_asignaciones' => $asignacion->id_asignaciones,
+                    'id_trimestres' => $trimestre->id_trimestres,
+                    'fecha' => null,
+                    'orden' => $i,
+                ]);
+            }
+            $diasAsistencia = \App\Models\DiaAsistencia::where('id_asignaciones', $asignacion->id_asignaciones)
+                ->where('id_trimestres', $trimestre->id_trimestres)
+                ->orderBy('orden')
+                ->get();
+        }
+
         $evaluaciones = $asignacion->evaluaciones()
             ->where('id_trimestres', $trimestre->id_trimestres)
             ->with('criterios')
@@ -66,6 +87,19 @@ class PlanillaController extends Controller
             ->groupBy('id_estudiantes')
             ->map(fn($grupo) => $grupo->keyBy('id_criterios'));
 
+        $idsDias = $diasAsistencia->pluck('id_dias_asistencia');
+
+        $asistencias = \App\Models\Asistencia::whereIn('id_dias_asistencia', $idsDias)
+            ->get()
+            ->groupBy('id_estudiantes')
+            ->map(fn($grupo) => $grupo->keyBy('id_dias_asistencia'));
+
+        $conteoAsistencias = [];
+        foreach ($estudiantes as $estudiante) {
+            $marcas = $asistencias[$estudiante->id_estudiantes] ?? collect();
+            $conteoAsistencias[$estudiante->id_estudiantes] = $marcas->where('estado', 'presente')->count();
+        }
+
         $irregularidades = PlanillaValidator::evaluarPlanilla($estudiantes, $evaluaciones, $calificaciones);
 
         return view('planillas.show', compact(
@@ -74,17 +108,28 @@ class PlanillaController extends Controller
             'evaluaciones',
             'estudiantes',
             'calificaciones',
-            'irregularidades'
+            'irregularidades',
+            'esEdicionPermitida',
+            'diasAsistencia',
+            'asistencias',
+            'conteoAsistencias'
         ));
     }
 
     public function store(Request $request, Asignacion $asignacion, Trimestre $trimestre)
     {
+        if (!$trimestre->estaActivo()) {
+            return back()->with('error', 'El periodo de calificaciones para este trimestre ha sido cerrado por la administración.');
+        }
         $datos = $request->validate([
-            'notas' => ['required', 'array'],
+            'notas' => ['sometimes', 'array'],
             'notas.*.*' => ['nullable', 'numeric', 'min:0'],
             'nombres_criterios' => ['sometimes', 'array'],
             'nombres_criterios.*' => ['nullable', 'string', 'max:255'],
+            'asistencia' => ['sometimes', 'array'],
+            'asistencia.*.*' => ['nullable', 'boolean'],
+            'fechas_dias' => ['sometimes', 'array'],
+            'fechas_dias.*' => ['nullable', 'date'],
         ]);
 
         if (isset($datos['nombres_criterios'])) {
@@ -94,15 +139,35 @@ class PlanillaController extends Controller
             }
         }
 
+        if (isset($datos['fechas_dias'])) {
+            foreach ($datos['fechas_dias'] as $idDia => $fecha) {
+                \App\Models\DiaAsistencia::where('id_dias_asistencia', $idDia)
+                    ->update(['fecha' => $fecha ?: null]);
+            }
+        }
+
         DB::transaction(function () use ($datos) {
-            foreach ($datos['notas'] as $idEstudiante => $notasPorCriterio) {
-                foreach ($notasPorCriterio as $idCriterio => $nota) {
-                    if ($nota === null || $nota === '')
-                        continue;
-                    Calificacion::updateOrCreate(
-                        ['id_criterios' => $idCriterio, 'id_estudiantes' => $idEstudiante],
-                        ['nota' => $nota]
-                    );
+            if (isset($datos['notas'])) {
+                foreach ($datos['notas'] as $idEstudiante => $notasPorCriterio) {
+                    foreach ($notasPorCriterio as $idCriterio => $nota) {
+                        if ($nota === null || $nota === '')
+                            continue;
+                        Calificacion::updateOrCreate(
+                            ['id_criterios' => $idCriterio, 'id_estudiantes' => $idEstudiante],
+                            ['nota' => $nota]
+                        );
+                    }
+                }
+            }
+
+            if (isset($datos['asistencia'])) {
+                foreach ($datos['asistencia'] as $idEstudiante => $marcasPorDia) {
+                    foreach ($marcasPorDia as $idDia => $presente) {
+                        \App\Models\Asistencia::updateOrCreate(
+                            ['id_dias_asistencia' => $idDia, 'id_estudiantes' => $idEstudiante],
+                            ['estado' => $presente ? 'presente' : 'ausente']
+                        );
+                    }
                 }
             }
         });
@@ -152,7 +217,6 @@ class PlanillaController extends Controller
                 : null;
         }
 
-        // --- ESTADÍSTICAS POR GÉNERO ---
         $estadisticas = [
             'varones' => ['aprobados' => 0, 'reprobados' => 0],
             'mujeres' => ['aprobados' => 0, 'reprobados' => 0],
@@ -167,7 +231,6 @@ class PlanillaController extends Controller
             $estadisticas[$grupo][$promedio >= self::NOTA_APROBACION ? 'aprobados' : 'reprobados']++;
         }
 
-        // --- CUADRO DE APROVECHAMIENTO (Promedio General del Curso) ---
         $aprovechamientoTrimestral = [];
         foreach ($trimestres as $tri) {
             $notasTri = collect($promediosPorTrimestre)->map(fn($e) => $e[$tri->id_trimestres] ?? null)->filter(fn($n) => $n !== null);
@@ -189,6 +252,99 @@ class PlanillaController extends Controller
         ));
     }
 
+    public function centralizadorCurso(Trimestre $trimestre, \App\Models\Curso $curso)
+    {
+        $asignaciones = Asignacion::with('materia')
+            ->where('id_cursos', $curso->id_cursos)
+            ->where('gestion', $trimestre->gestion)
+            ->get()
+            ->sortBy(fn($a) => $a->materia->nombre)
+            ->values();
+
+        $estudiantes = $curso->inscripciones()
+            ->with('estudiante.persona')
+            ->where('gestion', $trimestre->gestion)
+            ->get()
+            ->pluck('estudiante')
+            ->sortBy(fn($e) => $e->persona->apellido_p . $e->persona->apellido_m . $e->persona->nombres)
+            ->values();
+
+        $promedios = [];
+        foreach ($estudiantes as $estudiante) {
+            foreach ($asignaciones as $asignacion) {
+                $promedios[$estudiante->id_estudiantes][$asignacion->id_asignaciones] =
+                    $this->calcularPromedioFinal($asignacion, $trimestre, $estudiante);
+            }
+        }
+
+        $promedioGeneral = [];
+        foreach ($estudiantes as $estudiante) {
+            $notas = collect($promedios[$estudiante->id_estudiantes])->filter(fn($n) => $n !== null);
+            $promedioGeneral[$estudiante->id_estudiantes] = $notas->isNotEmpty() ? round($notas->avg()) : null;
+        }
+
+        $ordinales = [1 => '1er', 2 => '2do', 3 => '3er', 4 => '4to'];
+        $trimestreCorto = $ordinales[$trimestre->orden] ?? $trimestre->nombres;
+
+        return view('planillas.centralizador_curso', compact(
+            'curso',
+            'trimestre',
+            'trimestreCorto',
+            'asignaciones',
+            'estudiantes',
+            'promedios',
+            'promedioGeneral'
+        ));
+    }
+
+    public function pdfCentralizadorCurso(Trimestre $trimestre, \App\Models\Curso $curso)
+    {
+        $asignaciones = Asignacion::with('materia')
+            ->where('id_cursos', $curso->id_cursos)
+            ->where('gestion', $trimestre->gestion)
+            ->get()
+            ->sortBy(fn($a) => $a->materia->nombre)
+            ->values();
+
+        $estudiantes = $curso->inscripciones()
+            ->with('estudiante.persona')
+            ->where('gestion', $trimestre->gestion)
+            ->get()
+            ->pluck('estudiante')
+            ->sortBy(fn($e) => $e->persona->apellido_p . $e->persona->apellido_m . $e->persona->nombres)
+            ->values();
+
+        $promedios = [];
+        foreach ($estudiantes as $estudiante) {
+            foreach ($asignaciones as $asignacion) {
+                $promedios[$estudiante->id_estudiantes][$asignacion->id_asignaciones] =
+                    $this->calcularPromedioFinal($asignacion, $trimestre, $estudiante);
+            }
+        }
+
+        $promedioGeneral = [];
+        foreach ($estudiantes as $estudiante) {
+            $notas = collect($promedios[$estudiante->id_estudiantes])->filter(fn($n) => $n !== null);
+            $promedioGeneral[$estudiante->id_estudiantes] = $notas->isNotEmpty() ? round($notas->avg()) : null;
+        }
+
+        $ordinales = [1 => '1er', 2 => '2do', 3 => '3er', 4 => '4to'];
+        $trimestreCorto = $ordinales[$trimestre->orden] ?? $trimestre->nombres;
+
+        $pdf = Pdf::loadView('pdf.centralizador_curso', compact(
+            'curso',
+            'trimestre',
+            'trimestreCorto',
+            'asignaciones',
+            'estudiantes',
+            'promedios',
+            'promedioGeneral'
+        ));
+
+        return $pdf->setPaper('legal', 'landscape')
+            ->stream('Centralizador-' . $curso->nombre . $curso->paralelo . '-' . $trimestreCorto . 'Trim.pdf');
+    }
+
     private function calcularPromedioFinal(Asignacion $asignacion, Trimestre $trimestre, Estudiante $estudiante): ?float
     {
         $evaluaciones = $asignacion->evaluaciones()
@@ -197,7 +353,7 @@ class PlanillaController extends Controller
             ->get();
 
         if ($evaluaciones->isEmpty()) {
-            return null; // ese trimestre nunca se llegó a cargar para esta asignación
+            return null;
         }
 
         $idsCriterios = $evaluaciones->flatMap->criterios->pluck('id_criterios');
@@ -261,7 +417,102 @@ class PlanillaController extends Controller
             'promedioAnual'
         ));
 
-        // Formato Carta / Portrait (Vertical)
         return $pdf->setPaper('letter', 'portrait')->stream('Centralizador-' . $asignacion->curso->nombre . '.pdf');
+    }
+
+    public function pdfPlanilla(Asignacion $asignacion, Trimestre $trimestre, Request $request)
+    {
+        $modo = $request->query('modo', 'llena');
+        if (!in_array($modo, ['blanco', 'llena'])) {
+            $modo = 'llena';
+        }
+
+        $evaluaciones = $asignacion->evaluaciones()
+            ->where('id_trimestres', $trimestre->id_trimestres)
+            ->with('criterios')
+            ->get();
+
+        if ($modo === 'blanco') {
+            $cantidadesPorDefecto = [
+                'Ser' => 2,
+                'Saber' => 5,
+                'Hacer' => 5,
+                'Decidir' => 2,
+            ];
+
+            foreach ($evaluaciones as $evaluacion) {
+                $cantidad = $cantidadesPorDefecto[$evaluacion->tipo] ?? 3;
+                $criteriosFicticios = collect();
+
+                for ($i = 0; $i < $cantidad; $i++) {
+                    $criteriosFicticios->push((object) [
+                        'id_criterios' => 'temp_' . $evaluacion->id_evaluaciones . '_' . $i,
+                        'nombre' => ''
+                    ]);
+                }
+                $evaluacion->setRelation('criterios', $criteriosFicticios);
+            }
+
+            $calificaciones = collect();
+            $conteoAsistencias = [];
+        } else {
+            foreach ($evaluaciones as $evaluacion) {
+                $criteriosValidos = $evaluacion->criterios->filter(function ($criterio) {
+                    return !is_null($criterio->nombre) && trim($criterio->nombre) !== '';
+                })->values();
+
+                $evaluacion->setRelation('criterios', $criteriosValidos);
+            }
+
+            $idsCriterios = $evaluaciones->flatMap->criterios->pluck('id_criterios');
+            $calificaciones = \App\Models\Calificacion::whereIn('id_criterios', $idsCriterios)
+                ->get()
+                ->groupBy('id_estudiantes')
+                ->map(fn($grupo) => $grupo->keyBy('id_criterios'));
+        }
+
+        $estudiantes = $asignacion->curso->inscripciones()
+            ->with('estudiante.persona')
+            ->where('gestion', $asignacion->gestion)
+            ->get()
+            ->pluck('estudiante');
+
+        $diasAsistencia = \App\Models\DiaAsistencia::where('id_asignaciones', $asignacion->id_asignaciones)
+            ->where('id_trimestres', $trimestre->id_trimestres)
+            ->orderBy('orden')
+            ->get();
+
+        if ($modo !== 'blanco') {
+            $idsDias = $diasAsistencia->pluck('id_dias_asistencia');
+            $asistenciasRaw = \App\Models\Asistencia::whereIn('id_dias_asistencia', $idsDias)
+                ->get()
+                ->groupBy('id_estudiantes');
+
+            $conteoAsistencias = [];
+            foreach ($estudiantes as $estudiante) {
+                $marcas = $asistenciasRaw[$estudiante->id_estudiantes] ?? collect();
+                $conteoAsistencias[$estudiante->id_estudiantes] = $marcas->where('estado', 'presente')->count();
+            }
+        }
+
+        $pdf = Pdf::loadView('pdf.planilla', compact(
+            'asignacion',
+            'trimestre',
+            'evaluaciones',
+            'estudiantes',
+            'calificaciones',
+            'diasAsistencia',
+            'conteoAsistencias',
+            'modo'
+        ));
+
+        $nombreArchivo = 'Planilla-' . $asignacion->curso->nombre . '-' . ($modo === 'blanco' ? 'Vacia' : 'Con-Notas') . '.pdf';
+
+        return $pdf->setPaper('letter', 'landscape')->stream($nombreArchivo);
+    }
+
+    public function exportarPdf(Asignacion $asignacion, Trimestre $trimestre, Request $request)
+    {
+        return $this->pdfPlanilla($asignacion, $trimestre, $request);
     }
 }

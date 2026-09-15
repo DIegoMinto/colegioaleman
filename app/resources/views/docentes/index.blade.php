@@ -18,11 +18,15 @@
                 <span class="font-medium">{{ session('exito') }}</span>
             </div>
         @endif
-
+        <div class="flex gap-2 justify-end">
+                <a href="{{ route('docentes.exportar.pdf') }}" target="_blank" class="btn-secondary ml-2">Exportar PDF</a>
+                <a href="{{ route('docentes.exportar.csv') }}" class="btn-secondary">Exportar CSV</a>
+        </div>
         <div class="table-container overflow-x-auto">
             <table class="table-custom text-sm">
                 <thead>
                     <tr>
+                        <th>N°</th>
                         <th>Nombre Completo</th>
                         <th>CI</th>
                         <th>Fecha Nac.</th>
@@ -34,10 +38,14 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
-                    @foreach ($docentes as $docente)
+                    @foreach ($docentes as $index => $docente)
                         @php $p = $docente->persona;
-                        $u = $p->usuario; @endphp
+                        $u = $p->usuario; 
+                        @endphp
                         <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="text-center font-semibold text-gray-500 whitespace-nowrap">
+                                {{ $docentes->firstItem() + $index }}
+                            </td>
                             <td class="whitespace-nowrap font-bold text-gray-900">
                                 {{ $p->nombres }} {{ $p->apellido_p }} {{ $p->apellido_m }}
                             </td>
@@ -67,6 +75,8 @@
                 </tbody>
             </table>
         </div>
+
+        {{ $docentes->links('components.pagination') }}
 
     </div>
 @endsection

@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     zip \
     unzip \
+    python3 \
+    python3-pip \
     && docker-php-ext-install \
     pdo \
     pdo_pgsql \
@@ -19,6 +21,8 @@ RUN apt-get update && apt-get install -y \
     bcmath \
     gd \
     && rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install --break-system-packages --no-cache-dir pdfplumber
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 

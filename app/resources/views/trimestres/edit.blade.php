@@ -43,6 +43,21 @@
                         class="form-input" required>
                 </div>
 
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="fecha_inicio" class="form-label">Fecha de inicio</label>
+                        <input type="date" id="fecha_inicio" name="fecha_inicio"
+                            value="{{ old('fecha_inicio', $trimestre->fecha_inicio?->format('Y-m-d')) }}" class="form-input"
+                            required>
+                    </div>
+                    <div>
+                        <label for="fecha_fin" class="form-label">Fecha de fin</label>
+                        <input type="date" id="fecha_fin" name="fecha_fin"
+                            value="{{ old('fecha_fin', $trimestre->fecha_fin?->format('Y-m-d')) }}" class="form-input"
+                            required>
+                    </div>
+                </div>
+
                 <div class="pt-4 flex items-center justify-end gap-3 border-t border-gray-100">
                     <a href="{{ route('trimestres.index') }}" class="btn-secondary">Cancelar</a>
                     <button type="submit" class="btn-primary">

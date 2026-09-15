@@ -16,11 +16,35 @@ class AsignacionController extends Controller
 {
     public function index()
     {
-        $asignaciones = Asignacion::with('docente.persona', 'curso', 'materia')
+        $asignaciones = Asignacion::with([
+            'docente.persona' => function ($query) {
+                $query->orderBy('apellido_p', 'asc')
+                    ->orderBy('apellido_m', 'asc')
+                    ->orderBy('nombres', 'asc');
+            },
+            'curso' => function ($query) {
+                $query->orderBy('nombre', 'asc');
+            },
+            'materia'
+        ])
             ->orderBy('gestion', 'desc')
             ->get();
 
-        return view('asignaciones.index', compact('asignaciones'));
+        $asignaciones = $asignaciones->sortBy([
+            ['docente.persona.apellido_p', 'asc'],
+            ['docente.persona.apellido_m', 'asc'],
+            ['docente.persona.nombres', 'asc'],
+        ]);
+
+        $docentes = $asignaciones->pluck('docente')->filter()->unique(function ($docente) {
+            return $docente->id_docentes ?? $docente->id_docente ?? $docente->id;
+        });
+
+        $cursos = $asignaciones->pluck('curso.nombre')->filter()->unique()->values();
+        $niveles = $asignaciones->pluck('curso.nivel')->filter()->unique()->values();
+        $paralelos = $asignaciones->pluck('curso.paralelo')->filter()->unique()->values();
+
+        return view('asignaciones.index', compact('asignaciones', 'docentes', 'cursos', 'niveles', 'paralelos'));
     }
 
     public function create()

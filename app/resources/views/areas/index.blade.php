@@ -7,7 +7,7 @@
 
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-gray-200">
             <div>
-                <h1 class="text-2xl font-bold text-[#7A1C1C] tracking-tight">Áreas de Materia</h1>
+                <h1 class="text-2xl font-bold text-brand-900 tracking-tight">Áreas de Materia</h1>
                 <p class="text-sm text-gray-500 mt-1">Gestión de las áreas académicas o departamentos de la institución.</p>
             </div>
             <div>
@@ -31,21 +31,23 @@
             </div>
         @endif
 
-        <div class="w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <table class="w-full text-left text-sm border-collapse">
+        @include('components.alerts')
+
+        <div class="table-container">
+            <table class="table-custom">
                 <thead>
-                    <tr class="bg-[#7A1C1C] text-white uppercase text-xs font-semibold tracking-wider">
-                        <th class="px-6 py-4">Nombre</th>
-                        <th class="px-6 py-4 text-right">Acciones</th>
+                    <tr>
+                        <th>Nombre</th>
+                        <th class="text-right">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     @forelse ($areas as $area)
                         <tr class="hover:bg-gray-50 transition-colors">
-                            <td class="px-6 py-4 font-bold text-gray-900">
+                            <td class="font-bold text-gray-900">
                                 {{ $area->nombre }}
                             </td>
-                            <td class="px-6 py-4 text-right space-x-2">
+                            <td class="text-right space-x-2">
                                 <a href="{{ route('areas.edit', $area) }}" class="btn-secondary">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -54,23 +56,22 @@
                                     Editar
                                 </a>
 
-                                <form method="POST" action="{{ route('areas.destroy', $area) }}" class="inline-block"
-                                    onsubmit="return confirm('¿Eliminar esta área?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn-danger-sm">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                        Eliminar
-                                    </button>
-                                </form>
+                                <button type="button" class="btn-danger-sm" @click="$dispatch('abrir-modal', { 
+                                                        title: '¿Eliminar área?', 
+                                                        message: '¿Estás seguro de eliminar el área {{ $area->nombre }}?', 
+                                                        url: '{{ route('areas.destroy', $area) }}' 
+                                                    })">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    Eliminar
+                                </button>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="2" class="px-6 py-10 text-center text-gray-500">
+                            <td colspan="2" class="text-center py-10 text-gray-500">
                                 No hay áreas registradas hasta el momento.
                             </td>
                         </tr>

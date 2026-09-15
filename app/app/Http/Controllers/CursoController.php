@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Curso;
 use Illuminate\Http\Request;
+use Illuminate\Database\QueryException;
 
 class CursoController extends Controller
 {
@@ -51,7 +52,22 @@ class CursoController extends Controller
 
     public function destroy(Curso $curso)
     {
-        $curso->delete();
-        return redirect()->route('cursos.index')->with('exito', 'Curso eliminado correctamente.');
+        try {
+            $curso->delete();
+
+            return redirect()
+                ->route('cursos.index')
+                ->with('exito', 'Curso eliminado correctamente.');
+
+        } catch (QueryException $e) {
+            return redirect()
+                ->route('cursos.index')
+                ->with('error', 'No se puede eliminar el curso porque tiene registros asociados (estudiantes, asignaciones, materias, etc.).');
+
+        } catch (\Exception $e) {
+            return redirect()
+                ->route('cursos.index')
+                ->with('error', 'Ocurrió un error inesperado al intentar eliminar el curso.');
+        }
     }
 }

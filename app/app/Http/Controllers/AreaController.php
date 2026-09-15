@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Area;
 use Illuminate\Http\Request;
+use Illuminate\Database\QueryException;
 
 class AreaController extends Controller
 {
@@ -47,7 +48,22 @@ class AreaController extends Controller
 
     public function destroy(Area $area)
     {
-        $area->delete();
-        return redirect()->route('areas.index')->with('exito', 'Area eliminada correctamente.');
+        try {
+            $area->delete();
+
+            return redirect()
+                ->route('areas.index')
+                ->with('exito', 'Área eliminada correctamente.');
+
+        } catch (QueryException $e) {
+            return redirect()
+                ->route('areas.index')
+                ->with('error', 'No se puede eliminar el área porque tiene registros asociados (materias, asignaciones, etc.).');
+
+        } catch (\Exception $e) {
+            return redirect()
+                ->route('areas.index')
+                ->with('error', 'Ocurrió un error inesperado al intentar eliminar el área.');
+        }
     }
 }

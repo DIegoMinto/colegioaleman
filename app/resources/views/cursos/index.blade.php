@@ -5,7 +5,6 @@
 @section('content')
     <div class="space-y-6">
 
-        <!-- Encabezado de Sección -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-gray-200">
             <div>
                 <h1 class="text-2xl font-bold text-brand-900 tracking-tight">Gestión de Cursos</h1>
@@ -22,7 +21,8 @@
             </div>
         </div>
 
-        <!-- Alerta de Éxito -->
+        @include('components.alerts')
+
         @if (session('exito'))
             <div
                 class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 flex items-center gap-3">
@@ -34,7 +34,6 @@
             </div>
         @endif
 
-        <!-- Tabla de Cursos con Cabecera Guindo -->
         <div class="table-container">
             <table class="table-custom">
                 <thead>
@@ -64,6 +63,14 @@
                                 </span>
                             </td>
                             <td class="text-right space-x-2">
+                                <a href="{{ route('inscripciones.show', $curso) }}" class="btn-secondary">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-8.13a4 4 0 11-8 0 4 4 0 018 0zm6 4a4 4 0 11-8 0 4 4 0 018 0z" />
+                                    </svg>
+                                    Estudiantes
+                                </a>
+
                                 <a href="{{ route('cursos.edit', $curso) }}" class="btn-secondary">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -72,18 +79,17 @@
                                     Editar
                                 </a>
 
-                                <form method="POST" action="{{ route('cursos.destroy', $curso) }}" class="inline-block"
-                                    onsubmit="return confirm('¿Eliminar este curso?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn-danger-sm">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                        Eliminar
-                                    </button>
-                                </form>
+                                <button type="button" class="btn-danger-sm" @click="$dispatch('abrir-modal', { 
+                                                        title: '¿Eliminar curso?', 
+                                                        message: '¿Estás seguro de eliminar el curso {{ $curso->nombre }} Paralelo {{ $curso->paralelo }}?', 
+                                                        url: '{{ route('cursos.destroy', $curso) }}' 
+                                                    })">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    Eliminar
+                                </button>
                             </td>
                         </tr>
                     @empty

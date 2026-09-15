@@ -23,10 +23,6 @@ class StoreEstudianteRequest extends FormRequest
             'domicilio' => ['nullable', 'string', 'max:200'],
             'celular' => ['nullable', 'string', 'max:20'],
             'departamento_residencia' => ['nullable', 'string', 'max:50'],
-
-            'email' => ['required', 'email', Rule::unique('usuarios', 'email')],
-            'user' => ['required', 'string', 'max:50', Rule::unique('usuarios', 'user')],
-            'password' => ['required', 'string', 'min:8'],
         ];
     }
 
@@ -34,8 +30,6 @@ class StoreEstudianteRequest extends FormRequest
     {
         return [
             'ci.unique' => 'Ya existe una persona registrada con este número de CI.',
-            'email.unique' => 'Este correo ya está en uso.',
-            'user.unique' => 'Este nombre de usuario ya está en uso.',
             'fecha_nacimiento.before' => 'La fecha de nacimiento debe ser anterior a hoy.',
         ];
     }

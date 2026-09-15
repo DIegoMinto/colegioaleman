@@ -41,6 +41,17 @@
             <input type="text" id="celular" name="celular" value="{{ old('celular', $persona->celular) }}"
                 class="form-input">
         </div>
+        <div>
+            <label for="departamento_residencia" class="form-label">Departamento de Residencia</label>
+            <select id="departamento_residencia" name="departamento_residencia" class="form-input bg-white">
+                <option value="">-- Selecciona --</option>
+                @foreach (['La Paz', 'Cochabamba', 'Santa Cruz', 'Oruro', 'Potosí', 'Chuquisaca', 'Tarija', 'Beni', 'Pando'] as $depto)
+                    <option value="{{ $depto }}" @selected(old('departamento_residencia', $persona->departamento_residencia) === $depto)>
+                        {{ $depto }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
         <div class="sm:col-span-2">
             <label for="domicilio" class="form-label">Domicilio</label>
             <input type="text" id="domicilio" name="domicilio" value="{{ old('domicilio', $persona->domicilio) }}"

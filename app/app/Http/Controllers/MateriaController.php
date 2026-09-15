@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Materia;
 use App\Models\Area;
 use Illuminate\Http\Request;
+use Illuminate\Database\QueryException;
 
 class MateriaController extends Controller
 {
@@ -52,7 +53,22 @@ class MateriaController extends Controller
 
     public function destroy(Materia $materia)
     {
-        $materia->delete();
-        return redirect()->route('materias.index')->with('exito', 'Materia eliminada correctamente.');
+        try {
+            $materia->delete();
+
+            return redirect()
+                ->route('materias.index')
+                ->with('exito', 'Materia eliminada correctamente.');
+
+        } catch (QueryException $e) {
+            return redirect()
+                ->route('materias.index')
+                ->with('error', 'No se puede eliminar la materia porque tiene registros asociados (asignaciones, notas, actividades, etc.).');
+
+        } catch (\Exception $e) {
+            return redirect()
+                ->route('materias.index')
+                ->with('error', 'Ocurrió un error inesperado al intentar eliminar la materia.');
+        }
     }
 }

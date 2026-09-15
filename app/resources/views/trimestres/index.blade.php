@@ -29,6 +29,8 @@
                         <th>Nombre</th>
                         <th>Orden</th>
                         <th>Gestión</th>
+                        <th>Periodo</th>
+                        <th>Estado Edición</th>
                         <th class="text-right">Acciones</th>
                     </tr>
                 </thead>
@@ -38,21 +40,56 @@
                             <td class="font-bold text-gray-900">{{ $trimestre->nombres }}</td>
                             <td>{{ $trimestre->orden }}</td>
                             <td>{{ $trimestre->gestion }}</td>
+                            <td class="text-sm text-gray-600">
+                                @if ($trimestre->fecha_inicio && $trimestre->fecha_fin)
+                                    {{ $trimestre->fecha_inicio->format('d/m/Y') }} - {{ $trimestre->fecha_fin->format('d/m/Y') }}
+                                @else
+                                    <span class="text-gray-400">Sin definir</span>
+                                @endif
+                            </td>
+                            <td>
+                                @if ($trimestre->activo)
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                        <span class="w-1.5 h-1.5 mr-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                                        Abierto (Habilitado)
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200">
+                                        Cerrado (Bloqueado)
+                                    </span>
+                                @endif
+                            </td>
                             <td class="text-right space-x-2">
+                                <form method="POST" action="{{ route('trimestres.toggle-estado', $trimestre) }}" class="inline-block">
+                                    @csrf
+                                    @method('PATCH')
+                                    @if ($trimestre->activo)
+                                        <button type="submit" class="text-xs font-medium px-3 py-1.5 rounded-md bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition-colors" title="Cerrar trimestre para que docentes no editen notas">
+                                            Cerrar
+                                        </button>
+                                    @else
+                                        <button type="submit" class="text-xs font-medium px-3 py-1.5 rounded-md bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors" title="Abrir trimestre para permitir edición de notas">
+                                            Abrir
+                                        </button>
+                                    @endif
+                                </form>
+
                                 <a href="{{ route('trimestres.edit', $trimestre) }}" class="btn-secondary">
                                     Editar
                                 </a>
-                                <form method="POST" action="{{ route('trimestres.destroy', $trimestre) }}" class="inline-block"
-                                    onsubmit="return confirm('¿Eliminar este trimestre?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn-danger-sm">Eliminar</button>
-                                </form>
+
+                                <button type="button" 
+                                    class="btn-danger-sm btn-eliminar"
+                                    data-title="¿Eliminar trimestre?"
+                                    data-message="¿Estás seguro de que deseas eliminar {{ $trimestre->nombres }}?"
+                                    data-url="{{ route('trimestres.destroy', $trimestre) }}">
+                                    Eliminar
+                                </button>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="px-6 py-10 text-center text-gray-500">
+                            <td colspan="6" class="px-6 py-10 text-center text-gray-500">
                                 No hay trimestres registrados hasta el momento.
                             </td>
                         </tr>

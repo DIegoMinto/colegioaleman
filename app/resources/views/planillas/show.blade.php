@@ -119,6 +119,10 @@
                         <tr>
                             <th rowspan="2" class="sticky-col-num">N°</th>
                             <th rowspan="2" class="sticky-col-nombre">Apellidos y Nombres</th>
+                            <th colspan="{{ $diasAsistencia->count() }}" class="th-dimension-asistencia toggle-asistencia">
+                                Asistencia
+                            </th>
+                            <th rowspan="2" class="th-porc-asistencia toggle-asistencia">Asis.</th>
 
                             @foreach ($evaluaciones as $evaluacion)
                                 @php
@@ -142,6 +146,14 @@
                         </tr>
 
                         <tr>
+                            @foreach ($diasAsistencia as $dia)
+                                <th class="th-dimension-asistencia th-vertical toggle-asistencia">
+                                    <input type="text" class="input-fecha-dia" maxlength="5"
+                                        name="fechas_dias[{{ $dia->id_dias_asistencia }}]"
+                                        value="{{ $dia->fecha ? \Carbon\Carbon::parse($dia->fecha)->format('d/m') : '' }}"
+                                        title="Fecha de esta actividad (opcional)">
+                                </th>
+                            @endforeach
                             @foreach ($evaluaciones as $evaluacion)
                                 @php
                                     $dimClass = match ($evaluacion->tipo) {
@@ -181,6 +193,25 @@
                                     title="{{ $estudiante->persona->apellido_p }} {{ $estudiante->persona->apellido_m }} {{ $estudiante->persona->nombres }}">
                                     {{ $estudiante->persona->apellido_p }} {{ $estudiante->persona->apellido_m }}
                                     {{ $estudiante->persona->nombres }}
+                                </td>
+
+                                @foreach ($diasAsistencia as $dia)
+                                    @php
+                                        $marcaAsistencia = $asistencias[$estudiante->id_estudiantes][$dia->id_dias_asistencia] ?? null;
+                                        $estaPresente = $marcaAsistencia?->estado === 'presente';
+                                    @endphp
+                                    <td class="td-dimension-asistencia toggle-asistencia">
+                                        <input type="hidden"
+                                            name="asistencia[{{ $estudiante->id_estudiantes }}][{{ $dia->id_dias_asistencia }}]"
+                                            value="0">
+                                        <input type="checkbox" class="input-asistencia"
+                                            name="asistencia[{{ $estudiante->id_estudiantes }}][{{ $dia->id_dias_asistencia }}]"
+                                            value="1" {{ $estaPresente ? 'checked' : '' }}>
+                                    </td>
+                                @endforeach
+
+                                <td class="td-porc-asistencia toggle-asistencia">
+                                    {{ $conteoAsistencias[$estudiante->id_estudiantes] ?? 0 }}
                                 </td>
 
                                 @foreach ($evaluaciones as $evaluacion)
@@ -274,6 +305,20 @@
                     </span>
                 </button>
 
+                <button type="button" onclick="toggleAsistencia()" class="btn-secondary" id="btn-toggle-asistencia">
+                    Ocultar Asistencia
+                </button>
+
+                <a href="{{ route('planilla.pdf', [$asignacion, $trimestre, 'modo' => 'blanco']) }}" target="_blank"
+                    class="btn-secondary">
+                    Imprimir Vacía
+                </a>
+
+                <a href="{{ route('planilla.pdf', [$asignacion, $trimestre, 'modo' => 'llena']) }}" target="_blank"
+                    class="btn-secondary">
+                    Imprimir con Notas
+                </a>
+
                 <a href="{{ route('planilla.centralizador', [$asignacion, $trimestre]) }}" class="btn-secondary">
                     Ver Centralizador
                 </a>
@@ -290,6 +335,22 @@
                     }
                 }
             }
+            function toggleAsistencia() {
+                const oculto = sessionStorage.getItem('asistencia_oculta') === '1';
+                document.querySelectorAll('.toggle-asistencia').forEach(el => {
+                    el.classList.toggle('hidden', !oculto);
+                });
+                sessionStorage.setItem('asistencia_oculta', oculto ? '0' : '1');
+                document.getElementById('btn-toggle-asistencia').textContent =
+                    oculto ? 'Ocultar Asistencia' : 'Mostrar Asistencia';
+            }
+
+            document.addEventListener('DOMContentLoaded', () => {
+                if (sessionStorage.getItem('asistencia_oculta') === '1') {
+                    document.querySelectorAll('.toggle-asistencia').forEach(el => el.classList.add('hidden'));
+                    document.getElementById('btn-toggle-asistencia').textContent = 'Mostrar Asistencia';
+                }
+            });
         </script>
     </div>
 @endsection

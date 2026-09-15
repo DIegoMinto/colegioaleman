@@ -5,7 +5,7 @@ export default defineConfig({
     plugins: [
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.js'],
-            refresh: true,
+            refresh: true, 
         }),
     ],
     server: {
@@ -17,6 +17,8 @@ export default defineConfig({
         },
         watch: {
             usePolling: true,
+            interval: 1000, 
+            ignored: ['**/node_modules/**', '**/vendor/**', '**/storage/**'], 
         },
     },
 });

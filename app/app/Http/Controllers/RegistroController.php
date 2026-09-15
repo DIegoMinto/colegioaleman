@@ -13,9 +13,11 @@ use App\Models\Role;
 use App\Models\Usuario;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class RegistroController extends Controller
 {
+    private const DOMINIO_INSTITUCIONAL = 'colegioalemansucre.edu.bo';
 
     public function createEstudiante()
     {
@@ -24,16 +26,18 @@ class RegistroController extends Controller
 
     public function storeEstudiante(StoreEstudianteRequest $request)
     {
-        DB::transaction(function () use ($request) {
-            $persona = $this->crearPersona($request->validated());
-            $usuario = $this->crearUsuario($request->validated(), $persona, 'Estudiante');
+        $datos = $request->validated();
+
+        DB::transaction(function () use ($datos) {
+            $persona = $this->crearPersona($datos);
+            $idRol = $this->idRolPorNombre('Estudiante');
+            $this->crearUsuario($persona, $idRol);
 
             Estudiante::create(['id_personas' => $persona->id_personas]);
         });
 
-        return redirect()->route('dashboard')->with('exito', 'Estudiante registrado correctamente.');
+        return redirect()->route('estudiantes.index')->with('exito', 'Estudiante registrado correctamente.');
     }
-
 
     public function createDocente()
     {
@@ -42,14 +46,17 @@ class RegistroController extends Controller
 
     public function storeDocente(StoreDocenteRequest $request)
     {
-        DB::transaction(function () use ($request) {
-            $persona = $this->crearPersona($request->validated());
-            $usuario = $this->crearUsuario($request->validated(), $persona, 'Profesor');
+        $datos = $request->validated();
+
+        DB::transaction(function () use ($datos) {
+            $persona = $this->crearPersona($datos);
+            $idRol = $this->idRolPorNombre('Profesor');
+            $this->crearUsuario($persona, $idRol);
 
             Docente::create(['id_personas' => $persona->id_personas]);
         });
 
-        return redirect()->route('dashboard')->with('exito', 'Profesor registrado correctamente.');
+        return redirect()->route('docentes.index')->with('exito', 'Docente registrado correctamente.');
     }
 
     public function createAdministrativo()
@@ -59,14 +66,17 @@ class RegistroController extends Controller
 
     public function storeAdministrativo(StoreAdministrativoRequest $request)
     {
-        DB::transaction(function () use ($request) {
-            $persona = $this->crearPersona($request->validated());
-            $usuario = $this->crearUsuario($request->validated(), $persona, 'Administrador');
+        $datos = $request->validated();
+
+        DB::transaction(function () use ($datos) {
+            $persona = $this->crearPersona($datos);
+            $idRol = $this->idRolPorNombre('Administrador');
+            $this->crearUsuario($persona, $idRol);
 
             Administrativo::create(['id_personas' => $persona->id_personas]);
         });
 
-        return redirect()->route('dashboard')->with('exito', 'Administrativo registrado correctamente.');
+        return redirect()->route('administrativos.index')->with('exito', 'Administrativo registrado correctamente.');
     }
 
     private function crearPersona(array $datos): Persona
@@ -75,7 +85,7 @@ class RegistroController extends Controller
             'nombres' => $datos['nombres'],
             'apellido_p' => $datos['apellido_p'],
             'apellido_m' => $datos['apellido_m'] ?? null,
-            'sexo' => $datos['sexo'],
+            'sexo' => $datos['sexo'] ?? null,
             'ci' => $datos['ci'],
             'fecha_nacimiento' => $datos['fecha_nacimiento'],
             'domicilio' => $datos['domicilio'] ?? null,
@@ -84,16 +94,49 @@ class RegistroController extends Controller
         ]);
     }
 
-    private function crearUsuario(array $datos, Persona $persona, string $nombreRol): Usuario
+    private function crearUsuario(Persona $persona, int $idRol): Usuario
     {
-        $rol = Role::where('nombre', $nombreRol)->firstOrFail();
+        $email = $this->generarEmailInstitucional($persona->nombres, $persona->apellido_p, $persona->apellido_m);
 
         return Usuario::create([
-            'email' => $datos['email'],
-            'user' => $datos['user'],
-            'password' => Hash::make($datos['password']),
-            'id_roles' => $rol->id_roles,
+            'email' => $email,
+            'user' => Str::before($email, '@'),
+            'password' => Hash::make($persona->ci),
+            'id_roles' => $idRol,
             'id_personas' => $persona->id_personas,
+            'activo' => true,
         ]);
+    }
+
+    /**
+     * "Diego Minto Perez" -> "diego.minto.perez@dominio"
+     * Garantiza unicidad agregando un número incremental si ya existe.
+     */
+    private function generarEmailInstitucional(string $nombres, string $apellidoP, ?string $apellidoM): string
+    {
+        $primerNombre = Str::slug(Str::ascii(explode(' ', trim($nombres))[0] ?? ''), '');
+        $apP = Str::slug(Str::ascii($apellidoP), '');
+        $apM = $apellidoM ? Str::slug(Str::ascii($apellidoM), '') : null;
+
+        $base = implode('.', array_filter([$primerNombre, $apP, $apM]));
+
+        $email = "{$base}@" . self::DOMINIO_INSTITUCIONAL;
+        $contador = 1;
+
+        while (Usuario::where('email', $email)->exists()) {
+            $email = "{$base}{$contador}@" . self::DOMINIO_INSTITUCIONAL;
+            $contador++;
+        }
+
+        return $email;
+    }
+
+    private function idRolPorNombre(string $nombre): int
+    {
+        $idRol = Role::where('nombre', $nombre)->value('id_roles');
+
+        abort_if(is_null($idRol), 500, "No existe el rol '{$nombre}' en la base de datos.");
+
+        return $idRol;
     }
 }

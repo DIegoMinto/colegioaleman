@@ -22,4 +22,6 @@ class Evaluacion extends Model
     {
         return $this->hasMany(Criterio::class, 'id_evaluaciones', 'id_evaluaciones')->orderBy('orden');
     }
+
+
 }
